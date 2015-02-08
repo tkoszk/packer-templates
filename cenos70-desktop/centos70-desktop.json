@@ -1,0 +1,72 @@
+{
+  "variables": {
+    "cleanup_pause": "10",
+    "headless": "",
+    "iso_url": "file:///Users/take/Downloads/CentOS-7.0-1406-x86_64-DVD.iso",
+    "iso_checksum": "154ba47b7a37e52e0100310c3aeb8f9d9daf4806",
+    "update": "true",
+    "ssh_username": "vagrant",
+    "ssh_password": "vagrant",
+    "install_vagrant_key": true,
+    "http_proxy": "{{env `http_proxy`}}",
+    "https_proxy": "{{env `https_proxy`}}",
+    "ftp_proxy": "{{env `ftp_proxy`}}",
+    "rsync_proxy": "{{env `rsync_proxy`}}",
+    "no_proxy": "{{env `no_proxy`}}"
+  },
+  "builders": [{
+    "vm_name": "centos70-desktop",
+    "type": "virtualbox-iso",
+    "http_directory": "http",
+    "iso_url": "{{ user `iso_url` }}",
+    "iso_checksum": "{{ user `iso_checksum` }}",
+    "iso_checksum_type": "sha1",
+    "guest_os_type": "RedHat_64",
+    "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+    "virtualbox_version_file": ".vbox_version",
+    "ssh_username": "{{ user `ssh_username` }}",
+    "ssh_password": "{{ user `ssh_password` }}",
+    "ssh_wait_timeout": "10000s",
+    "headless": "{{ user `headless` }}",
+    "boot_command": [
+      "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort}}/ks7-desktop.cfg<enter>"
+    ],
+    "boot_wait": "10s",
+    "shutdown_command": "echo 'vagrant'|sudo -S shutdown -P now",
+    "disk_size": 40960,
+    "vboxmanage": [
+      ["modifyvm", "{{.Name}}", "--memory", "1024"],
+      ["modifyvm", "{{.Name}}", "--cpus", "1"]
+    ]
+  }],
+  "provisioners": [{
+    "type": "shell",
+    "environment_vars": [
+      "CLEANUP_PAUSE={{user `cleanup_pause`}}",
+      "UPDATE={{user `update`}}",
+      "INSTALL_VAGRANT_KEY={{user `install_vagrant_key`}}",
+      "SSH_USERNAME={{user `ssh_username`}}",
+      "SSH_PASSWORD={{user `ssh_password`}}",
+      "http_proxy={{user `http_proxy`}}",
+      "https_proxy={{user `https_proxy`}}",
+      "ftp_proxy={{user `ftp_proxy`}}",
+      "rsync_proxy={{user `rsync_proxy`}}",
+      "no_proxy={{user `no_proxy`}}"
+    ],
+    "execute_command": "echo 'vagrant' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+    "scripts": [
+      "script/fix-slow-dns.sh",
+      "script/sshd.sh",
+      "script/update.sh",
+      "script/vagrant.sh",
+      "script/desktop.sh",
+      "script/vmtool.sh",
+      "script/cleanup.sh"
+    ]
+  }],
+  "post-processors": [{
+    "type": "vagrant",
+    "keep_input_artifact": false,
+    "output": "centos70-desktop.box"
+  }]
+}
